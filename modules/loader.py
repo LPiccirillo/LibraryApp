@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+import numbers
 
 # Central column mapping used across the application.
 # Avoids hardcoding Excel column names in different modules.
@@ -81,7 +82,7 @@ def normalize_excel_date(value):
     46228.0 -> "29/07/2026"
     """
 
-    if isinstance(value, (int, float)):
+    if isinstance(value, numbers.Number):
 
         try:
 
@@ -98,7 +99,7 @@ def normalize_excel_date(value):
         except Exception:
 
             return value
-
+            
     return value
 
 
