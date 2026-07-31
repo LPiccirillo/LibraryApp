@@ -21,3 +21,9 @@ LibraryApp/
     └── ui.py
 
 ```
+
+---
+
+# Link to the web app
+
+[https://libraryapp-lp.streamlit.app/](https://libraryapp-lp.streamlit.app/)
