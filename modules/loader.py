@@ -73,33 +73,40 @@ def load_books():
 
 def normalize_excel_date(value):
     """
-    Convert numeric Excel date serials into formatted dates.
+    Convert Excel numeric date serials into dd/mm/yyyy strings.
 
-    Only numeric values are converted.
+    Only numeric Excel serial values are converted.
     Text values remain unchanged.
 
     Example:
-    46228.0 -> "29/07/2026"
+    46228 -> "29/07/2026"
     """
+
+    if pd.isna(value):
+        return None
 
     if isinstance(value, numbers.Number):
 
-        try:
+        # Avoid converting years like 1884, 1979, etc.
+        # Excel dates are usually serials > 20000.
+        if value > 20000:
 
-            date = pd.to_datetime(
-                value,
-                unit="D",
-                origin="1899-12-30"
-            )
+            try:
 
-            return date.strftime(
-                "%d/%m/%Y"
-            )
+                date = pd.to_datetime(
+                    value,
+                    unit="D",
+                    origin="1899-12-30"
+                )
 
-        except Exception:
+                return date.strftime(
+                    "%d/%m/%Y"
+                )
 
-            return value
-            
+            except Exception:
+
+                return value
+
     return value
 
 
