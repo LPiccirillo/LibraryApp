@@ -5,7 +5,6 @@ from pathlib import Path
 # Avoids hardcoding Excel column names in different modules.
 from modules.config import COLUMNS
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Main catalogue database file.
@@ -26,10 +25,12 @@ def load_books():
     - remove empty records
     - normalize column names
     - convert multi-value fields into lists
+    - convert selected Excel dates
     - sort records according to library rules
     """
 
     if not FILE_PATH.exists():
+
         raise FileNotFoundError(
             "Catalogue file not found: data/book_catalogue.xlsx"
         )
@@ -53,12 +54,52 @@ def load_books():
     )
 
     # Convert Excel values into structured Python values.
-    df = normalize_dataframe(df)
+    df = normalize_dataframe(
+        df
+    )
 
     # Apply OPAC-style sorting.
-    df = sort_catalogue(df)
+    df = sort_catalogue(
+        df
+    )
 
     return df
+
+
+# ==================================================
+# EXCEL DATE NORMALIZATION
+# ==================================================
+
+def normalize_excel_date(value):
+    """
+    Convert numeric Excel date serials into formatted dates.
+
+    Only numeric values are converted.
+    Text values remain unchanged.
+
+    Example:
+    46228.0 -> "29/07/2026"
+    """
+
+    if isinstance(value, (int, float)):
+
+        try:
+
+            date = pd.to_datetime(
+                value,
+                unit="D",
+                origin="1899-12-30"
+            )
+
+            return date.strftime(
+                "%d/%m/%Y"
+            )
+
+        except Exception:
+
+            return value
+
+    return value
 
 
 # ==================================================
@@ -76,6 +117,7 @@ def normalize_cell(value):
     """
 
     if pd.isna(value):
+
         return None
 
     if isinstance(value, str):
@@ -83,6 +125,7 @@ def normalize_cell(value):
         value = value.strip()
 
         if value == "":
+
             return None
 
         # Convert multi-value fields:
@@ -90,9 +133,13 @@ def normalize_cell(value):
         if ";" in value:
 
             return [
+
                 item.strip()
+
                 for item in value.split(";")
+
                 if item.strip()
+
             ]
 
         return value
@@ -100,17 +147,48 @@ def normalize_cell(value):
     return value
 
 
+# ==================================================
+# DATAFRAME NORMALIZATION
+# ==================================================
+
 def normalize_dataframe(df):
     """
-    Apply cell normalization to every catalogue column.
+    Normalize the complete catalogue dataframe.
+
+    Date conversion is applied only to:
+    - loan_date
+    - birth_date
+    - death_date
+
+    Numeric Excel serial dates are converted.
+    All other columns are normalized normally.
     """
+
+    date_columns = [
+
+        COLUMNS["loan_date"],
+
+        COLUMNS["birth_date"],
+
+        COLUMNS["death_date"]
+
+    ]
 
     for column in df.columns:
 
-        df[column] = (
-            df[column]
-            .apply(normalize_cell)
-        )
+        if column in date_columns:
+
+            df[column] = (
+                df[column]
+                .apply(normalize_excel_date)
+            )
+
+        else:
+
+            df[column] = (
+                df[column]
+                .apply(normalize_cell)
+            )
 
     return df
 
@@ -130,71 +208,117 @@ def sort_catalogue(df):
     """
 
     author_column = COLUMNS["author"]
+
     volume_column = COLUMNS["volume"]
+
     title_column = COLUMNS["owned_title"]
 
     # Temporary sorting fields.
     df["_sort_author"] = None
+
     df["_sort_volume"] = None
+
     df["_sort_title"] = None
 
     if author_column in df.columns:
 
         df["_sort_author"] = (
+
             df[author_column]
+
             .apply(
+
                 lambda value:
+
                 str(value[0])
+
                 if isinstance(value, list)
+
                 and len(value) > 0
+
                 else str(value)
+
             )
+
             .str.lower()
+
         )
 
     if volume_column in df.columns:
 
         df["_sort_volume"] = (
+
             df[volume_column]
+
             .apply(
+
                 lambda value:
+
                 str(value[0])
+
                 if isinstance(value, list)
+
                 and len(value) > 0
+
                 else str(value)
+
             )
+
             .str.lower()
+
         )
 
     if title_column in df.columns:
 
         df["_sort_title"] = (
+
             df[title_column]
+
             .apply(
+
                 lambda value:
+
                 str(value)
+
                 if value is not None
+
                 else ""
+
             )
+
             .str.lower()
+
         )
 
     df = df.sort_values(
+
         by=[
+
             "_sort_author",
+
             "_sort_volume",
+
             "_sort_title"
+
         ],
+
         ascending=True
+
     )
 
     # Remove internal sorting columns.
     df = df.drop(
+
         columns=[
+
             "_sort_author",
+
             "_sort_volume",
+
             "_sort_title"
+
         ]
+
     )
 
     return df.reset_index(
@@ -237,9 +361,13 @@ def catalogue_quality_report(df):
     if copy_id_column in df.columns:
 
         report["duplicate_copy_ids"] = (
+
             df[copy_id_column]
+
             .duplicated()
+
             .sum()
+
         )
 
     return report
