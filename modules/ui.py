@@ -434,6 +434,7 @@ def show_results(df):
             df.loc[selected_book]
         )
 
+
 # ==================================================
 # Book popup dialog
 # ==================================================
@@ -442,7 +443,6 @@ def show_results(df):
     "Bibliographic record",
     width="large"
 )
-
 def show_book_dialog(book):
 
     """
@@ -451,11 +451,24 @@ def show_book_dialog(book):
 
     def clean_display(value):
 
+        """
+        Clean values before displaying them.
+
+        Handles:
+        - empty values
+        - NaN values
+        - datetime values
+        - lists
+        """
+
         if value is None:
             return ""
 
         if isinstance(value, float) and pd.isna(value):
             return ""
+
+        # Dates are already formatted during import.
+        # Keep them as dd/mm/yyyy strings.
 
         text = flatten(value).strip()
 
@@ -471,6 +484,7 @@ def show_book_dialog(book):
 
         """
         Remove ISBN separators.
+
         Example:
         978-88-17-08089-7
         becomes:
@@ -488,7 +502,7 @@ def show_book_dialog(book):
         )
 
     # ------------------------------------------
-    # Main data
+    # Main bibliographic data
     # ------------------------------------------
 
     title = clean_display(
@@ -508,7 +522,7 @@ def show_book_dialog(book):
         )
 
     # ------------------------------------------
-    # Availability
+    # Availability information
     # ------------------------------------------
 
     borrower = clean_display(
@@ -518,6 +532,14 @@ def show_book_dialog(book):
     location = clean_display(
         book[COLUMNS["location"]]
     )
+
+    loan_date = ""
+
+    if "loan_date" in COLUMNS:
+
+        loan_date = clean_display(
+            book[COLUMNS["loan_date"]]
+        )
 
     if not borrower:
 
@@ -535,15 +557,22 @@ def show_book_dialog(book):
 
     else:
 
-        st.error(
-            f"On loan to {borrower}"
-        )
+        if loan_date:
 
+            st.error(
+                f"On loan to {borrower} (since {loan_date})"
+            )
+
+        else:
+
+            st.error(
+                f"On loan to {borrower}"
+            )
 
     st.divider()
 
     # ------------------------------------------
-    # Bibliographic information
+    # Bibliographic information fields
     # ------------------------------------------
 
     info = {
@@ -591,6 +620,10 @@ def show_book_dialog(book):
 
     for label, column in info.items():
 
+        if column not in book.index:
+
+            continue
+
         value = clean_display(
             book[column]
         )
@@ -598,7 +631,7 @@ def show_book_dialog(book):
         if value:
 
             # ------------------------------
-            # ISBN speciale
+            # Special ISBN formatting
             # ------------------------------
 
             if label == "ISBN":
@@ -620,7 +653,7 @@ def show_book_dialog(book):
                     )
 
             # ------------------------------
-            # Prezzo copertina con price_eur
+            # Cover price with EUR conversion
             # ------------------------------
 
             elif label == "Cover price":
@@ -646,7 +679,7 @@ def show_book_dialog(book):
                     )
 
             # ------------------------------
-            # Normal fields
+            # Standard fields
             # ------------------------------
 
             else:
@@ -658,7 +691,7 @@ def show_book_dialog(book):
     st.divider()
 
     # ------------------------------------------
-    # Close button
+    # Close dialog button
     # ------------------------------------------
 
     if st.button(
