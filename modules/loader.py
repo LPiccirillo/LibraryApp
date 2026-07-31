@@ -6,11 +6,11 @@ import numbers
 # Avoids hardcoding Excel column names in different modules.
 from modules.config import COLUMNS
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Main catalogue database file.
 FILE_PATH = BASE_DIR / "data" / "book_catalogue.xlsx"
-
 
 # ==================================================
 # LOAD EXCEL CATALOGUE
@@ -73,23 +73,26 @@ def load_books():
 
 def normalize_excel_date(value):
     """
-    Convert Excel numeric date serials into dd/mm/yyyy strings.
+    Convert Excel serial dates into dd/mm/yyyy strings.
 
     Only numeric Excel serial values are converted.
-    Text values remain unchanged.
+
+    Normal years and textual values remain unchanged.
 
     Example:
-    46228 -> "29/07/2026"
+    19064 -> "11/03/1952"
+    37022 -> "11/05/2001"
     """
 
     if pd.isna(value):
+
         return None
 
     if isinstance(value, numbers.Number):
 
-        # Avoid converting years like 1884, 1979, etc.
-        # Excel dates are usually serials > 20000.
-        if value > 20000:
+        # Excel serial dates start around 1900.
+        # Values below 3000 are considered years or normal numbers.
+        if value >= 3000:
 
             try:
 
@@ -164,23 +167,22 @@ def normalize_dataframe(df):
     Normalize the complete catalogue dataframe.
 
     Date conversion is applied only to:
-    - loan_date
-    - birth_date
-    - death_date
+    - Loan Date
+    - Birth Date
+    - Death Date
 
     Numeric Excel serial dates are converted.
-    All other columns are normalized normally.
     """
+    
+    date_columns = {
 
-    date_columns = [
+        COLUMNS.get("loan_date"),
 
-        COLUMNS["loan_date"],
+        COLUMNS.get("birth_date"),
 
-        COLUMNS["birth_date"],
+        COLUMNS.get("death_date")
 
-        COLUMNS["death_date"]
-
-    ]
+    }
 
     for column in df.columns:
 
@@ -188,14 +190,18 @@ def normalize_dataframe(df):
 
             df[column] = (
                 df[column]
-                .apply(normalize_excel_date)
+                .apply(
+                    normalize_excel_date
+                )
             )
 
         else:
 
             df[column] = (
                 df[column]
-                .apply(normalize_cell)
+                .apply(
+                    normalize_cell
+                )
             )
 
     return df
@@ -328,7 +334,7 @@ def sort_catalogue(df):
         ]
 
     )
-
+    
     return df.reset_index(
         drop=True
     )
