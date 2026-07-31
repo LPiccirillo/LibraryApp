@@ -3,6 +3,9 @@
 ```
 LibraryApp/
 │
+├── .devcontainer/
+│   └── devcontainer.json
+│
 ├── requirements.txt
 ├── README.md
 ├── LICENSE_GPLv3
@@ -13,6 +16,7 @@ LibraryApp/
 ├── app.py
 │
 └── modules/
+    ├── __init__.py
     ├── config.py
     ├── loader.py
     ├── search.py
